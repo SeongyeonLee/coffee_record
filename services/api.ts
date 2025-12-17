@@ -24,9 +24,6 @@ const fetchData = async <T>(action: string, params: Record<string, string> = {})
 };
 
 const postData = async <T>(action: string, payload: any): Promise<T> => {
-  // Google Apps Script Web App POST requests require specific handling to avoid CORS preflight issues.
-  // 1. Use 'text/plain' Content-Type to make it a "Simple Request".
-  // 2. Use credentials: 'omit' to prevent browser looking for cookies (which causes issues with 'Anyone' scripts).
   const response = await fetch(API_URL, {
     method: 'POST',
     body: JSON.stringify({ action, ...payload }),
@@ -37,16 +34,14 @@ const postData = async <T>(action: string, payload: any): Promise<T> => {
   });
 
   if (!response.ok) {
-     throw new Error(`HTTP Error: ${response.status} - Check if API_URL is correct and deployed as 'Anyone'`);
+     throw new Error(`HTTP Error: ${response.status}`);
   }
 
-  // Handle cases where GAS returns a 302 redirect that fetch follows, 
-  // ensuring we actually got JSON back.
   let json: ApiResponse<T>;
   try {
       json = await response.json();
   } catch (e) {
-      throw new Error('Invalid JSON response. Check if script deployment is set to "Anyone".');
+      throw new Error('Invalid JSON response.');
   }
 
   if (json.status === 'error') {
@@ -62,6 +57,8 @@ export const api = {
   getCafeLogs: () => fetchData<CafeLog[]>('getCafeLogs'),
   
   addBean: (bean: Omit<Bean, 'id'>) => postData<Bean>('addBean', bean),
+  updateBeanStatus: (id: string, status: 'Active' | 'Finished') => postData<any>('updateBeanStatus', { id, status }),
   addBrew: (brew: Brew) => postData<Brew>('addBrew', brew),
+  addPreset: (preset: Preset) => postData<any>('addPreset', preset),
   addCafeLog: (log: CafeLog) => postData<CafeLog>('addCafe', log),
 };
