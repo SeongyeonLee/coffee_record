@@ -15,21 +15,20 @@ const Dashboard: React.FC<DashboardProps> = ({ beans, history, onSelectBean }) =
   const [isFocused, setIsFocused] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const activeBeans = beans.filter(b => b.status === 'Active');
+  // Case-insensitive status filter
+  const activeBeans = beans.filter(b => b.status && String(b.status).toLowerCase() === 'active');
   const recentBrews = history.slice(0, 5); 
   const totalSpent = history.reduce((acc, curr) => acc + (curr.calculatedCost || 0), 0);
 
-  // Filter beans for the dropdown
   const filteredBeans = activeBeans.filter(bean => 
-    bean.roaster.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    bean.variety.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    bean.farm.toLowerCase().includes(searchQuery.toLowerCase())
+    bean.roaster?.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    bean.variety?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    bean.farm?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
     <div className="space-y-12 animate-fade-in relative">
       
-      {/* Hero / Gemini Style Input */}
       <div className="flex flex-col items-center justify-center pt-8 pb-4">
         <h1 className="text-4xl font-light text-transparent bg-clip-text bg-gradient-to-r from-slate-100 to-slate-400 mb-8 tracking-tight">
           What are you brewing, Ayden?
@@ -51,7 +50,7 @@ const Dashboard: React.FC<DashboardProps> = ({ beans, history, onSelectBean }) =
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     onFocus={() => setIsFocused(true)}
-                    onBlur={() => setTimeout(() => setIsFocused(false), 200)} // Delay to allow click
+                    onBlur={() => setTimeout(() => setIsFocused(false), 200)}
                     placeholder="Search your active beans..."
                     className="w-full bg-transparent border-none text-lg p-5 text-slate-100 focus:ring-0 placeholder-slate-500 outline-none"
                 />
@@ -62,7 +61,6 @@ const Dashboard: React.FC<DashboardProps> = ({ beans, history, onSelectBean }) =
                 )}
             </div>
 
-            {/* Dropdown Results */}
             {isFocused && (
                 <div className="absolute top-full left-0 right-0 mt-2 bg-slate-800/95 backdrop-blur-xl border border-slate-700 rounded-2xl shadow-2xl overflow-hidden max-h-80 overflow-y-auto">
                     {filteredBeans.length > 0 ? (
@@ -96,7 +94,6 @@ const Dashboard: React.FC<DashboardProps> = ({ beans, history, onSelectBean }) =
         </div>
       </div>
 
-      {/* Stats Cards Row */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700">
             <div className="flex justify-between items-start mb-4">
@@ -126,7 +123,6 @@ const Dashboard: React.FC<DashboardProps> = ({ beans, history, onSelectBean }) =
         </div>
       </div>
 
-      {/* Recent Activity */}
       <div>
          <h3 className="text-lg font-medium text-slate-300 mb-4 flex items-center gap-2">
             <Coffee size={18} />
