@@ -30,8 +30,10 @@ const AddBeanForm: React.FC<AddBeanFormProps> = ({ onSuccess, onCancel }) => {
   });
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    const { name, value, type } = e.target;
+    // Ensure numbers are stored as numbers, not strings
+    const val = type === 'number' ? Number(value) : value;
+    setFormData(prev => ({ ...prev, [name]: val }));
   };
 
   const toggleFlavor = (flavor: string) => {
@@ -52,10 +54,6 @@ const AddBeanForm: React.FC<AddBeanFormProps> = ({ onSuccess, onCancel }) => {
     }
     setAiLoading(true);
     try {
-        // Use farm or variety as the 'bean name' for search if farm is empty, 
-        // but typically user might type "Onyx Geometry" in roaster/farm combo.
-        // Let's assume user puts the bean name in 'Farm/Station' or we just search generally.
-        // For better UX, let's look at what we have.
         const beanQuery = formData.farm || formData.variety || "Coffee";
         
         const info = await getCoffeeDetails(formData.roaster, beanQuery);
@@ -68,7 +66,7 @@ const AddBeanForm: React.FC<AddBeanFormProps> = ({ onSuccess, onCancel }) => {
                 farm: info.farm || prev.farm,
                 variety: info.variety || prev.variety,
                 process: info.process || prev.process,
-                altitude: info.altitude || prev.altitude,
+                altitude: info.altitude ? String(info.altitude) : prev.altitude,
                 flavorNotes: info.flavorNotes && info.flavorNotes.length > 0 ? info.flavorNotes.slice(0, 3) : prev.flavorNotes
             }));
         }
@@ -87,7 +85,7 @@ const AddBeanForm: React.FC<AddBeanFormProps> = ({ onSuccess, onCancel }) => {
       await api.addBean(formData as Omit<Bean, 'id'>);
       onSuccess();
     } catch (error) {
-      alert('Failed to add bean: ' + error);
+      alert('Failed to add bean. Please check your network or API settings.\nError: ' + error);
     } finally {
       setLoading(false);
     }
