@@ -1,8 +1,8 @@
 import React, { useState, useMemo } from 'react';
-import { Plus, Coffee, Search, Menu, ChevronLeft, MapPin } from 'lucide-react';
+import { Plus, Coffee, Search, Menu, MapPin, Archive, Settings, History } from 'lucide-react';
 import { Bean, AppView } from '../types';
 import { COUNTRY_FLAGS } from '../constants';
-import { formatDistanceToNow, parseISO } from 'date-fns';
+import { parseISO } from 'date-fns';
 
 interface SidebarProps {
   beans: Bean[];
@@ -18,7 +18,6 @@ const Sidebar: React.FC<SidebarProps> = ({ beans, onSelectBean, onNavigate, isOp
 
   const filteredBeans = useMemo(() => {
     return beans.filter(bean => {
-      // Case-insensitive status check
       const isStatusActive = bean.status && String(bean.status).toLowerCase() === 'active';
       const matchesSearch = 
         bean.roaster?.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -64,7 +63,7 @@ const Sidebar: React.FC<SidebarProps> = ({ beans, onSelectBean, onNavigate, isOp
         )}
       </div>
 
-      <div className="flex flex-col gap-1 px-2 mb-4">
+      <div className="flex flex-col gap-1 px-2 mb-4 overflow-y-auto overflow-x-hidden">
          <button 
             onClick={() => onNavigate(AppView.DASHBOARD)}
             className={`flex items-center gap-4 p-3 rounded-lg transition-colors ${activeView === AppView.DASHBOARD ? 'bg-slate-800 text-blue-400' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}
@@ -72,6 +71,24 @@ const Sidebar: React.FC<SidebarProps> = ({ beans, onSelectBean, onNavigate, isOp
          >
             <div className="min-w-[24px]"><Coffee size={24} /></div>
             {isOpen && <span className="font-medium">Dashboard</span>}
+         </button>
+
+         <button 
+            onClick={() => onNavigate(AppView.BEAN_ARCHIVE)}
+            className={`flex items-center gap-4 p-3 rounded-lg transition-colors ${activeView === AppView.BEAN_ARCHIVE ? 'bg-slate-800 text-amber-400' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}
+            title="Inventory"
+         >
+            <div className="min-w-[24px]"><Archive size={24} /></div>
+            {isOpen && <span className="font-medium">Inventory</span>}
+         </button>
+
+         <button 
+            onClick={() => onNavigate(AppView.BREW_HISTORY)}
+            className={`flex items-center gap-4 p-3 rounded-lg transition-colors ${activeView === AppView.BREW_HISTORY ? 'bg-slate-800 text-emerald-400' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}
+            title="Brew History"
+         >
+            <div className="min-w-[24px]"><History size={24} /></div>
+            {isOpen && <span className="font-medium">History</span>}
          </button>
          
          <button 
@@ -82,12 +99,21 @@ const Sidebar: React.FC<SidebarProps> = ({ beans, onSelectBean, onNavigate, isOp
              <div className="min-w-[24px]"><MapPin size={24} /></div>
              {isOpen && <span className="font-medium">Cafe Logs</span>}
          </button>
+
+         <button 
+            onClick={() => onNavigate(AppView.PRESET_MANAGER)}
+            className={`flex items-center gap-4 p-3 rounded-lg transition-colors ${activeView === AppView.PRESET_MANAGER ? 'bg-slate-800 text-slate-200' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}
+            title="Presets"
+         >
+             <div className="min-w-[24px]"><Settings size={24} /></div>
+             {isOpen && <span className="font-medium">Presets</span>}
+         </button>
       </div>
 
       {isOpen ? (
-        <div className="flex-1 overflow-hidden flex flex-col">
+        <div className="flex-1 overflow-hidden flex flex-col border-t border-slate-800 pt-4">
           <div className="px-4 mb-2">
-            <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Active Beans</h3>
+            <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Brew Now</h3>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={14} />
               <input 
@@ -102,7 +128,7 @@ const Sidebar: React.FC<SidebarProps> = ({ beans, onSelectBean, onNavigate, isOp
           
           <div className="flex-1 overflow-y-auto px-2 space-y-1 pb-4">
             {filteredBeans.length === 0 ? (
-                <div className="text-center text-slate-600 text-sm mt-4">No active beans found.</div>
+                <div className="text-center text-slate-600 text-sm mt-4">No active beans.</div>
             ) : (
                 filteredBeans.map(bean => (
                 <div 
@@ -137,7 +163,6 @@ const Sidebar: React.FC<SidebarProps> = ({ beans, onSelectBean, onNavigate, isOp
             {isOpen && (
                 <div className="flex flex-col">
                     <span className="text-sm font-medium text-slate-200">Ayden</span>
-                    <span className="text-xs text-slate-500">Coffee Enthusiast</span>
                 </div>
             )}
          </div>
