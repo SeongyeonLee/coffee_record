@@ -1,5 +1,5 @@
 // REPLACE THIS WITH YOUR DEPLOYED GOOGLE APPS SCRIPT WEB APP URL
-export const API_URL = 'https://script.google.com/macros/s/AKfycbwtpe7tK9QTqcApzVmi8ThsdPNhfkKFqd1vQRB314QppCfolGHS52HsUiiDzkjSIu-5/exec';
+export const API_URL = 'https://script.google.com/macros/s/AKfycbzC5gc7NXgoHpl9dKOYZxQeu9lk9kTnjMNyqUQS-PxpB4h8CRYR77O8CbluQXFQrbzq/exec';
 
 export const COUNTRY_FLAGS: Record<string, string> = {
   'Ethiopia': '🇪🇹',
