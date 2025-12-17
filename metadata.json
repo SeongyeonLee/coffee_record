@@ -1,0 +1,5 @@
+{
+  "name": "Specialty Coffee Journal",
+  "description": "A sophisticated serverless single-page application for tracking coffee beans, brews, and cafe visits with a Google Sheets backend.",
+  "requestFramePermissions": []
+}
