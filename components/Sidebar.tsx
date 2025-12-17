@@ -17,19 +17,24 @@ const Sidebar: React.FC<SidebarProps> = ({ beans, onSelectBean, onNavigate, isOp
   const [searchTerm, setSearchTerm] = useState('');
 
   const filteredBeans = useMemo(() => {
-    return beans.filter(bean => 
-      bean.status === 'Active' && 
-      (bean.roaster.toLowerCase().includes(searchTerm.toLowerCase()) || 
-       bean.country.toLowerCase().includes(searchTerm.toLowerCase()) ||
-       bean.variety.toLowerCase().includes(searchTerm.toLowerCase()))
-    );
+    return beans.filter(bean => {
+      // Case-insensitive status check
+      const isStatusActive = bean.status && String(bean.status).toLowerCase() === 'active';
+      const matchesSearch = 
+        bean.roaster?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+        bean.country?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        bean.variety?.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      return isStatusActive && matchesSearch;
+    });
   }, [beans, searchTerm]);
 
   const getFlag = (country: string) => COUNTRY_FLAGS[country] || COUNTRY_FLAGS['Unknown'];
 
   const getDaysSinceRoast = (dateStr: string) => {
+    if (!dateStr) return '';
     try {
-      const date = parseISO(dateStr);
+      const date = typeof dateStr === 'string' ? parseISO(dateStr) : new Date(dateStr);
       const diffTime = Math.abs(new Date().getTime() - date.getTime());
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
       return `D+${diffDays}`;
@@ -44,10 +49,9 @@ const Sidebar: React.FC<SidebarProps> = ({ beans, onSelectBean, onNavigate, isOp
         ${isOpen ? 'w-80' : 'w-16'}
       `}
     >
-      {/* Header */}
       <div className="p-4 flex items-center justify-between">
         <button onClick={() => setIsOpen(!isOpen)} className="text-slate-400 hover:text-white transition-colors">
-            {isOpen ? <Menu size={24} /> : <Menu size={24} />}
+            <Menu size={24} />
         </button>
         {isOpen && (
           <button 
@@ -60,7 +64,6 @@ const Sidebar: React.FC<SidebarProps> = ({ beans, onSelectBean, onNavigate, isOp
         )}
       </div>
 
-      {/* Main Nav Items (collapsed/expanded) */}
       <div className="flex flex-col gap-1 px-2 mb-4">
          <button 
             onClick={() => onNavigate(AppView.DASHBOARD)}
@@ -81,7 +84,6 @@ const Sidebar: React.FC<SidebarProps> = ({ beans, onSelectBean, onNavigate, isOp
          </button>
       </div>
 
-      {/* Bean List Section */}
       {isOpen ? (
         <div className="flex-1 overflow-hidden flex flex-col">
           <div className="px-4 mb-2">
@@ -127,7 +129,6 @@ const Sidebar: React.FC<SidebarProps> = ({ beans, onSelectBean, onNavigate, isOp
         </div>
       )}
       
-      {/* User / Footer */}
       <div className="p-4 border-t border-slate-800">
          <div className={`flex items-center gap-3 ${!isOpen && 'justify-center'}`}>
             <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-slate-200 font-bold text-xs">
