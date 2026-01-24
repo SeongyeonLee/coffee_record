@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Bean } from '../../types';
-import { FLAVOR_HIERARCHY, COUNTRY_FLAGS, FLAVOR_COLORS } from '../../constants';
+import { FLAVOR_HIERARCHY, COUNTRY_FLAGS } from '../../constants';
 import { Save, X, Sparkles, Loader2, ChevronRight, ChevronDown } from 'lucide-react';
 import { api } from '../../services/api';
 import { getCoffeeDetails } from '../../services/gemini';
@@ -42,7 +42,7 @@ const AddBeanForm: React.FC<AddBeanFormProps> = ({ onSuccess, onCancel }) => {
       if (current.includes(flavor)) {
         return { ...prev, flavorNotes: current.filter(f => f !== flavor) };
       }
-      if (current.length >= 6) return prev; // Expanded to 6
+      if (current.length >= 6) return prev;
       return { ...prev, flavorNotes: [...current, flavor] };
     });
   };
@@ -70,7 +70,7 @@ const AddBeanForm: React.FC<AddBeanFormProps> = ({ onSuccess, onCancel }) => {
         }
     } catch (e) {
         console.error(e);
-        alert("Could not auto-fill details.");
+        alert("AI search failed.");
     } finally {
         setAiLoading(false);
     }
@@ -83,14 +83,14 @@ const AddBeanForm: React.FC<AddBeanFormProps> = ({ onSuccess, onCancel }) => {
       await api.addBean(formData as Omit<Bean, 'id'>);
       onSuccess();
     } catch (error) {
-      alert('Failed to add bean.\nError: ' + error);
+      alert('Failed: ' + error);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="max-w-3xl mx-auto pb-20">
+    <div className="max-w-4xl mx-auto pb-20">
       <div className="flex justify-between items-center mb-10">
         <div>
           <h2 className="text-3xl font-light text-slate-100">Add New Bean</h2>
@@ -106,11 +106,7 @@ const AddBeanForm: React.FC<AddBeanFormProps> = ({ onSuccess, onCancel }) => {
                <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">Origin & Roaster</h3>
                <div>
                   <label className="block text-xs font-medium text-slate-400 mb-2">Roaster Name</label>
-                  <input required name="roaster" value={formData.roaster} onChange={handleInputChange} className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-slate-200 focus:border-blue-500 outline-none" placeholder="e.g. Fritz Coffee" />
-               </div>
-               <div>
-                  <label className="block text-xs font-medium text-slate-400 mb-2">Bean Name / Farm</label>
-                  <input name="farm" value={formData.farm} onChange={handleInputChange} className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-slate-200 focus:border-blue-500 outline-none" placeholder="e.g. Old Dog" />
+                  <input required name="roaster" value={formData.roaster} onChange={handleInputChange} className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-slate-200 focus:border-blue-500 outline-none" />
                </div>
                <button 
                   type="button"
@@ -119,15 +115,12 @@ const AddBeanForm: React.FC<AddBeanFormProps> = ({ onSuccess, onCancel }) => {
                   className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-900/50 to-purple-900/50 hover:from-indigo-900 hover:to-purple-900 border border-indigo-700 text-indigo-100 py-3 rounded-xl text-sm font-medium transition-all"
                >
                   {aiLoading ? <Loader2 className="animate-spin" size={18}/> : <Sparkles size={18} />}
-                  {aiLoading ? "Searching Web..." : "Auto-fill with AI"}
+                  Auto-fill with AI
                </button>
                <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-medium text-slate-400 mb-2">Country</label>
                     <input required list="countries" name="country" value={formData.country} onChange={handleInputChange} className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-slate-200 focus:border-blue-500 outline-none" />
-                    <datalist id="countries">
-                      {Object.keys(COUNTRY_FLAGS).filter(c => c !== 'Unknown').map(c => <option key={c} value={c} />)}
-                    </datalist>
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-400 mb-2">Region</label>
@@ -143,33 +136,23 @@ const AddBeanForm: React.FC<AddBeanFormProps> = ({ onSuccess, onCancel }) => {
                <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-medium text-slate-400 mb-2">Variety</label>
-                    <input name="variety" value={formData.variety} onChange={handleInputChange} className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-slate-200 focus:border-blue-500 outline-none" />
+                    <input name="variety" value={formData.variety} onChange={handleInputChange} className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-slate-200" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-400 mb-2">Process</label>
-                    <select name="process" value={formData.process} onChange={handleInputChange} className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-slate-200 focus:border-blue-500 outline-none">
-                        {['Natural', 'Washed', 'Honey', 'Anaerobic', 'Double Anaerobic', 'Carbonic Maceration'].map(p => <option key={p} value={p}>{p}</option>)}
+                    <select name="process" value={formData.process} onChange={handleInputChange} className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-slate-200">
+                        {['Natural', 'Washed', 'Honey', 'Anaerobic', 'Experimental'].map(p => <option key={p} value={p}>{p}</option>)}
                     </select>
                   </div>
                </div>
                <div className="grid grid-cols-2 gap-4">
-                 <div>
-                    <label className="block text-xs font-medium text-slate-400 mb-2">Altitude</label>
-                    <input name="altitude" value={formData.altitude} onChange={handleInputChange} className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-slate-200 focus:border-blue-500 outline-none" placeholder="1800" />
-                 </div>
-                 <div>
-                    <label className="block text-xs font-medium text-slate-400 mb-2">Purchase Date</label>
-                    <input type="date" required name="purchaseDate" value={formData.purchaseDate} onChange={handleInputChange} className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-slate-200 focus:border-blue-500 outline-none" />
-                 </div>
-               </div>
-               <div className="grid grid-cols-2 gap-4">
                 <div>
                     <label className="block text-xs font-medium text-slate-400 mb-2">Weight (g)</label>
-                    <input type="number" required name="weight" value={formData.weight} onChange={handleInputChange} className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-slate-200 focus:border-blue-500 outline-none" />
+                    <input type="number" required name="weight" value={formData.weight} onChange={handleInputChange} className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-slate-200" />
                 </div>
                 <div>
                     <label className="block text-xs font-medium text-slate-400 mb-2">Price (₩)</label>
-                    <input type="number" required name="price" value={formData.price} onChange={handleInputChange} className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-slate-200 focus:border-blue-500 outline-none" />
+                    <input type="number" required name="price" value={formData.price} onChange={handleInputChange} className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-slate-200" />
                 </div>
                </div>
              </div>
@@ -177,15 +160,14 @@ const AddBeanForm: React.FC<AddBeanFormProps> = ({ onSuccess, onCancel }) => {
         </div>
 
         <div className="pt-10 border-t border-slate-800">
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest">Flavor Profile Selection</h3>
-              <div className="flex gap-2">
-                {formData.flavorNotes?.map(note => (
-                  <span key={note} onClick={() => toggleFlavor(note)} className="bg-slate-700 text-white text-[10px] px-2 py-1 rounded-full cursor-pointer hover:bg-red-500 transition-colors">
-                    {note} ×
-                  </span>
-                ))}
-              </div>
+            <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-6">Flavor Profile Selection</h3>
+            <div className="flex flex-wrap gap-2 mb-6">
+              {formData.flavorNotes?.map(note => (
+                <span key={note} onClick={() => toggleFlavor(note)} className="bg-blue-600/30 text-blue-300 text-xs px-3 py-1.5 rounded-full cursor-pointer hover:bg-red-500/20 hover:text-red-400 transition-all">
+                  {note} ×
+                </span>
+              ))}
+              {formData.flavorNotes?.length === 0 && <span className="text-sm text-slate-600 italic">No flavors selected.</span>}
             </div>
             
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -202,7 +184,7 @@ const AddBeanForm: React.FC<AddBeanFormProps> = ({ onSuccess, onCancel }) => {
                       {isActive ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                     </button>
                     {isActive && (
-                      <div className="grid grid-cols-1 gap-1.5 p-2 bg-slate-900/50 rounded-2xl border border-slate-800 animate-scale-in">
+                      <div className="grid grid-cols-1 gap-1.5 p-2 bg-slate-900/50 rounded-2xl border border-slate-800">
                         {FLAVOR_HIERARCHY[category].map(note => {
                           const isSelected = formData.flavorNotes?.includes(note);
                           return (
@@ -210,7 +192,7 @@ const AddBeanForm: React.FC<AddBeanFormProps> = ({ onSuccess, onCancel }) => {
                               key={note}
                               type="button"
                               onClick={() => toggleFlavor(note)}
-                              className={`text-left p-2 rounded-xl text-xs transition-colors ${isSelected ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30' : 'text-slate-500 hover:bg-slate-800 hover:text-slate-300'}`}
+                              className={`text-left p-2.5 rounded-xl text-xs transition-colors ${isSelected ? 'bg-blue-600/20 text-blue-400' : 'text-slate-500 hover:bg-slate-800 hover:text-slate-300'}`}
                             >
                               {note}
                             </button>
@@ -228,9 +210,9 @@ const AddBeanForm: React.FC<AddBeanFormProps> = ({ onSuccess, onCancel }) => {
              <button 
                 type="submit" 
                 disabled={loading}
-                className="bg-white hover:bg-slate-200 text-slate-900 px-10 py-4 rounded-2xl font-bold transition-all shadow-xl disabled:opacity-50"
+                className="bg-white hover:bg-slate-200 text-slate-900 px-12 py-4 rounded-2xl font-bold transition-all shadow-xl"
              >
-                {loading ? 'Processing...' : 'Complete Registration'}
+                {loading ? 'Registering...' : 'Complete Registration'}
              </button>
         </div>
       </form>
