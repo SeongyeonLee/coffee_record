@@ -55,6 +55,8 @@ export interface CafeLog {
   flavorNotes: string[];
 }
 
+export interface CafeLogFormData extends Omit<CafeLog, 'id'> {}
+
 export enum AppView {
   DASHBOARD = 'DASHBOARD',
   ADD_BEAN = 'ADD_BEAN',
