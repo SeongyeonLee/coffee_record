@@ -1,5 +1,5 @@
 // REPLACE THIS WITH YOUR DEPLOYED GOOGLE APPS SCRIPT WEB APP URL
-export const API_URL = 'https://script.google.com/macros/s/AKfycbzC5gc7NXgoHpl9dKOYZxQeu9lk9kTnjMNyqUQS-PxpB4h8CRYR77O8CbluQXFQrbzq/exec';
+export const API_URL = 'https://script.google.com/macros/s/AKfycbwDfJXAj7I9GFGcj44Hudu35TXQCQwwDg_n_e3UodfMlTqemJ-fNDN7NRwgF2PGs_g/exec';
 
 export const COUNTRY_FLAGS: Record<string, string> = {
   'Ethiopia': '🇪🇹',
@@ -23,22 +23,26 @@ export const COUNTRY_FLAGS: Record<string, string> = {
   'Unknown': '🏳️',
 };
 
+export const FLAVOR_HIERARCHY: Record<string, string[]> = {
+  'Fruity': ['Blackberry', 'Blueberry', 'Raspberry', 'Cherry', 'Strawberry', 'Green Apple', 'Red Apple', 'Peach', 'Apricot', 'Plum', 'Mango', 'Papaya', 'Lemon', 'Lime', 'Orange', 'Grapefruit'],
+  'Floral': ['Jasmine', 'Rose', 'Lavender', 'Hibiscus', 'Orange Blossom'],
+  'Sweet': ['Caramel', 'Honey', 'Vanilla', 'Maple Syrup', 'Molasses', 'Brown Sugar'],
+  'Nutty': ['Almond', 'Hazelnut', 'Peanut', 'Walnut', 'Cashew'],
+  'Chocolate': ['Dark Chocolate', 'Milk Chocolate', 'Cocoa Powder'],
+  'Spicy': ['Cinnamon', 'Clove', 'Nutmeg', 'Black Pepper', 'Ginger'],
+  'Earthy/Green': ['Cedar', 'Pine', 'Tobacco', 'Tea', 'Herbal', 'Grass'],
+  'Fermented': ['Winey', 'Whiskey', 'Boosy', 'Yogurt'],
+};
+
 export const FLAVOR_COLORS: Record<string, string> = {
   'Fruity': 'from-pink-500 to-red-500',
   'Floral': 'from-purple-500 to-indigo-500',
   'Nutty': 'from-amber-700 to-brown-600',
-  'Cocoa': 'from-orange-900 to-stone-800',
+  'Chocolate': 'from-stone-700 to-stone-900',
   'Sweet': 'from-yellow-400 to-orange-400',
   'Spicy': 'from-red-700 to-orange-800',
   'Fermented': 'from-rose-700 to-pink-800',
-  'Green': 'from-green-500 to-emerald-700',
-  'Roasted': 'from-stone-600 to-stone-800',
-  'Berry': 'from-pink-600 to-purple-600',
-  'Citrus': 'from-yellow-300 to-yellow-500',
-  'Stone Fruit': 'from-orange-300 to-red-400',
+  'Earthy/Green': 'from-green-500 to-emerald-700',
 };
 
-export const COMMON_FLAVORS = [
-  'Fruity', 'Floral', 'Nutty', 'Cocoa', 'Sweet', 'Spicy', 
-  'Fermented', 'Green', 'Roasted', 'Berry', 'Citrus', 'Stone Fruit'
-];
+export const COMMON_FLAVORS = Object.keys(FLAVOR_HIERARCHY);
