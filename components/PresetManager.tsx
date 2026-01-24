@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Preset } from '../types';
-import { Settings, Plus, Save, Trash2, Droplets, Info } from 'lucide-react';
+import { Preset, PourStep } from '../types';
+import { Settings, Plus, Save, Trash2, Droplets, Info, Clock, Loader2 } from 'lucide-react';
 import { api } from '../services/api';
 
 interface PresetManagerProps {
@@ -11,23 +11,34 @@ interface PresetManagerProps {
 const PresetManager: React.FC<PresetManagerProps> = ({ presets, onRefresh }) => {
     const [isAdding, setIsAdding] = useState(false);
     const [loading, setLoading] = useState(false);
-    const [formData, setFormData] = useState<Preset>({
+    const [deletingId, setDeletingId] = useState<string | null>(null);
+    const [pourSteps, setPourSteps] = useState<PourStep[]>([{ time: '0:00', amount: 0 }]);
+
+    const [formData, setFormData] = useState<Omit<Preset, 'id' | 'pourSteps'>>({
         recipeName: '',
         grinder: '',
-        clicks: 20,
+        clicks: 25,
         dripper: '',
         temp: 93,
-        pourSteps: ''
     });
+
+    const addStep = () => setPourSteps([...pourSteps, { time: '', amount: 0 }]);
+    const removeStep = (idx: number) => setPourSteps(pourSteps.filter((_, i) => i !== idx));
+    const updateStep = (idx: number, field: keyof PourStep, val: string | number) => {
+      const newSteps = [...pourSteps];
+      newSteps[idx] = { ...newSteps[idx], [field]: val };
+      setPourSteps(newSteps);
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
         try {
-            await api.addPreset(formData);
+            await api.addPreset({ ...formData, pourSteps: JSON.stringify(pourSteps) });
             onRefresh();
             setIsAdding(false);
-            setFormData({ recipeName: '', grinder: '', clicks: 20, dripper: '', temp: 93, pourSteps: '' });
+            setPourSteps([{ time: '0:00', amount: 0 }]);
+            setFormData({ recipeName: '', grinder: '', clicks: 25, dripper: '', temp: 93 });
         } catch (e) {
             alert("Error saving preset");
         } finally {
@@ -35,106 +46,151 @@ const PresetManager: React.FC<PresetManagerProps> = ({ presets, onRefresh }) => 
         }
     };
 
+    const handleDelete = async (id: string) => {
+      if (!confirm("Delete this recipe preset?")) return;
+      setDeletingId(id);
+      try {
+        await api.deletePreset(id);
+        onRefresh();
+      } catch (e) {
+        alert("Failed to delete");
+      } finally {
+        setDeletingId(null);
+      }
+    };
+
     return (
         <div className="space-y-8 animate-fade-in pb-20">
             <div className="flex justify-between items-center">
                 <div>
                     <h1 className="text-3xl font-light text-slate-100">Recipe Presets</h1>
-                    <p className="text-slate-500 mt-1">Manage your go-to brewing methods.</p>
+                    <p className="text-slate-500 mt-1">Manage your professional brewing routines.</p>
                 </div>
                 <button 
                     onClick={() => setIsAdding(!isAdding)}
-                    className="flex items-center gap-2 bg-slate-100 hover:bg-white text-slate-900 px-4 py-2 rounded-lg font-medium transition-colors"
+                    className="flex items-center gap-2 bg-slate-100 hover:bg-white text-slate-900 px-6 py-3 rounded-2xl font-bold transition-all shadow-lg"
                 >
                     {isAdding ? 'Cancel' : <><Plus size={18} /> New Preset</>}
                 </button>
             </div>
 
             {isAdding && (
-                <div className="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl animate-scale-in">
-                    <h2 className="text-xl text-slate-200 mb-6 flex items-center gap-2">
-                        <Settings size={20} className="text-blue-400" />
-                        Create New Recipe
+                <div className="bg-slate-800 border border-slate-700 rounded-[2rem] p-8 shadow-2xl animate-scale-in">
+                    <h2 className="text-2xl text-slate-100 mb-8 flex items-center gap-2">
+                        <Settings size={24} className="text-blue-400" />
+                        Create New Recipe Routine
                     </h2>
-                    <form onSubmit={handleSubmit} className="space-y-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="space-y-4">
+                    <form onSubmit={handleSubmit} className="space-y-8">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                            <div className="space-y-6">
                                 <div>
-                                    <label className="block text-xs font-medium text-slate-400 mb-1">Recipe Name</label>
-                                    <input required value={formData.recipeName} onChange={e => setFormData({...formData, recipeName: e.target.value})} className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-slate-200" placeholder="e.g. V60 Tetsu Kasuya" />
+                                    <label className="block text-[10px] font-bold text-slate-500 uppercase mb-2">Routine Name</label>
+                                    <input required value={formData.recipeName} onChange={e => setFormData({...formData, recipeName: e.target.value})} className="w-full bg-slate-900 border border-slate-700 rounded-xl p-4 text-slate-100 focus:border-blue-500 outline-none" placeholder="e.g. V60 4:6 Method" />
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block text-xs font-medium text-slate-400 mb-1">Grinder</label>
-                                        <input required value={formData.grinder} onChange={e => setFormData({...formData, grinder: e.target.value})} className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-slate-200" placeholder="e.g. Comandante" />
+                                        <label className="block text-[10px] font-bold text-slate-500 uppercase mb-2">Grinder</label>
+                                        <input required value={formData.grinder} onChange={e => setFormData({...formData, grinder: e.target.value})} className="w-full bg-slate-900 border border-slate-700 rounded-xl p-4 text-slate-100 focus:border-blue-500 outline-none" />
                                     </div>
                                     <div>
-                                        <label className="block text-xs font-medium text-slate-400 mb-1">Clicks</label>
-                                        <input type="number" value={formData.clicks} onChange={e => setFormData({...formData, clicks: Number(e.target.value)})} className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-slate-200" />
+                                        <label className="block text-[10px] font-bold text-slate-500 uppercase mb-2">Setting</label>
+                                        <input type="number" value={formData.clicks} onChange={e => setFormData({...formData, clicks: Number(e.target.value)})} className="w-full bg-slate-900 border border-slate-700 rounded-xl p-4 text-slate-100 focus:border-blue-500 outline-none" />
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-[10px] font-bold text-slate-500 uppercase mb-2">Dripper</label>
+                                        <input required value={formData.dripper} onChange={e => setFormData({...formData, dripper: e.target.value})} className="w-full bg-slate-900 border border-slate-700 rounded-xl p-4 text-slate-100 focus:border-blue-500 outline-none" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-bold text-slate-500 uppercase mb-2">Temp (°C)</label>
+                                        <input type="number" value={formData.temp} onChange={e => setFormData({...formData, temp: Number(e.target.value)})} className="w-full bg-slate-900 border border-slate-700 rounded-xl p-4 text-slate-100 focus:border-blue-500 outline-none" />
                                     </div>
                                 </div>
                             </div>
-                            <div className="space-y-4">
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-xs font-medium text-slate-400 mb-1">Dripper</label>
-                                        <input required value={formData.dripper} onChange={e => setFormData({...formData, dripper: e.target.value})} className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-slate-200" placeholder="e.g. V60 02" />
+
+                            <div className="space-y-6">
+                                <label className="block text-[10px] font-bold text-slate-500 uppercase mb-2">Pouring Steps</label>
+                                <div className="space-y-3">
+                                  {pourSteps.map((step, idx) => (
+                                    <div key={idx} className="flex gap-3 items-center">
+                                      <input value={step.time} onChange={e => updateStep(idx, 'time', e.target.value)} placeholder="0:00" className="flex-1 bg-slate-900 border border-slate-700 rounded-xl p-3 text-xs text-slate-100 font-mono" />
+                                      <input type="number" value={step.amount} onChange={e => updateStep(idx, 'amount', Number(e.target.value))} placeholder="Amount (g)" className="flex-1 bg-slate-900 border border-slate-700 rounded-xl p-3 text-xs text-slate-100 font-mono" />
+                                      <button type="button" onClick={() => removeStep(idx)} className="text-slate-600 hover:text-red-400 p-2"><Trash2 size={16}/></button>
                                     </div>
-                                    <div>
-                                        <label className="block text-xs font-medium text-slate-400 mb-1">Water Temp (°C)</label>
-                                        <input type="number" value={formData.temp} onChange={e => setFormData({...formData, temp: Number(e.target.value)})} className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-slate-200" />
-                                    </div>
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-medium text-slate-400 mb-1 flex items-center gap-1">
-                                        <Droplets size={12} /> Pouring Guide
-                                    </label>
-                                    <input required value={formData.pourSteps} onChange={e => setFormData({...formData, pourSteps: e.target.value})} className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 font-mono text-sm text-slate-200" placeholder="e.g. 50-70-60-60 (300 total)" />
+                                  ))}
+                                  <button type="button" onClick={addStep} className="w-full py-3 border border-dashed border-slate-700 rounded-xl text-slate-500 text-xs hover:border-slate-500 transition-all">+ Add Step</button>
                                 </div>
                             </div>
                         </div>
                         <div className="flex justify-end pt-4">
-                            <button type="submit" disabled={loading} className="bg-blue-600 hover:bg-blue-500 text-white px-8 py-3 rounded-lg font-medium transition-all flex items-center gap-2">
-                                {loading ? 'Saving...' : <><Save size={18} /> Save Preset</>}
+                            <button type="submit" disabled={loading} className="bg-blue-600 hover:bg-blue-500 text-white px-10 py-4 rounded-2xl font-bold transition-all flex items-center gap-3">
+                                {loading ? <Loader2 className="animate-spin" size={20}/> : <><Save size={20} /> Save Routine</>}
                             </button>
                         </div>
                     </form>
                 </div>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {presets.map((p, idx) => (
-                    <div key={idx} className="bg-slate-800 p-6 rounded-2xl border border-slate-700 hover:border-slate-500 transition-all group">
-                        <div className="flex justify-between items-start mb-4">
-                            <h3 className="text-xl font-medium text-slate-100">{p.recipeName}</h3>
-                            <button className="text-slate-600 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100">
-                                <Trash2 size={16} />
-                            </button>
-                        </div>
-                        <div className="grid grid-cols-3 gap-2 mb-4">
-                            <div className="bg-slate-900/50 p-2 rounded-lg border border-slate-800 text-center">
-                                <div className="text-[10px] text-slate-500 uppercase">Grinder</div>
-                                <div className="text-sm font-medium text-slate-300 truncate">{p.grinder}</div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {presets.map((p) => {
+                    let parsedPour = [];
+                    try { parsedPour = JSON.parse(p.pourSteps); } catch(e) {}
+                    return (
+                        <div key={p.id} className="bg-slate-800 p-8 rounded-[2rem] border border-slate-700 hover:border-blue-500/30 transition-all group relative overflow-hidden">
+                            <div className="absolute top-0 right-0 p-8 opacity-[0.02] pointer-events-none group-hover:scale-110 transition-transform">
+                              <Settings size={120} />
                             </div>
-                            <div className="bg-slate-900/50 p-2 rounded-lg border border-slate-800 text-center">
-                                <div className="text-[10px] text-slate-500 uppercase">Clicks</div>
-                                <div className="text-sm font-medium text-slate-300">{p.clicks}</div>
+
+                            <div className="flex justify-between items-start mb-6">
+                                <h3 className="text-2xl font-light text-slate-100">{p.recipeName}</h3>
+                                <button 
+                                  onClick={() => handleDelete(p.id)}
+                                  disabled={deletingId === p.id}
+                                  className="p-2 text-slate-600 hover:text-red-400 hover:bg-red-400/10 rounded-full transition-all"
+                                >
+                                  {deletingId === p.id ? <Loader2 className="animate-spin" size={16}/> : <Trash2 size={18} />}
+                                </button>
                             </div>
-                            <div className="bg-slate-900/50 p-2 rounded-lg border border-slate-800 text-center">
-                                <div className="text-[10px] text-slate-500 uppercase">Temp</div>
-                                <div className="text-sm font-medium text-slate-300">{p.temp}°C</div>
+                            
+                            <div className="grid grid-cols-3 gap-3 mb-8">
+                                <div className="bg-slate-900/50 p-4 rounded-2xl border border-slate-800 text-center">
+                                    <div className="text-[10px] text-slate-500 uppercase tracking-widest mb-1">Grinder</div>
+                                    <div className="text-sm font-medium text-slate-300 truncate">{p.grinder}</div>
+                                </div>
+                                <div className="bg-slate-900/50 p-4 rounded-2xl border border-slate-800 text-center">
+                                    <div className="text-[10px] text-slate-500 uppercase tracking-widest mb-1">Setting</div>
+                                    <div className="text-sm font-medium text-slate-300">{p.clicks}</div>
+                                </div>
+                                <div className="bg-slate-900/50 p-4 rounded-2xl border border-slate-800 text-center">
+                                    <div className="text-[10px] text-slate-500 uppercase tracking-widest mb-1">Temp</div>
+                                    <div className="text-sm font-medium text-slate-300">{p.temp}°C</div>
+                                </div>
+                            </div>
+
+                            <div className="bg-slate-900/30 p-5 rounded-2xl border border-slate-700/50">
+                                <div className="text-[10px] text-slate-500 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                  <Droplets size={12} className="text-blue-500" /> Pour Sequence
+                                </div>
+                                <div className="space-y-3">
+                                  {Array.isArray(parsedPour) ? parsedPour.map((step: PourStep, i: number) => (
+                                    <div key={i} className="flex justify-between items-center text-sm">
+                                      <div className="flex items-center gap-2 text-slate-400">
+                                        <Clock size={10} className="text-slate-600" />
+                                        <span className="font-mono">{step.time}</span>
+                                      </div>
+                                      <div className="font-mono text-slate-200">{step.amount}g</div>
+                                    </div>
+                                  )) : <div className="text-xs text-slate-600">{p.pourSteps}</div>}
+                                </div>
                             </div>
                         </div>
-                        <div className="bg-slate-900/50 p-3 rounded-lg border border-slate-800 flex items-start gap-3">
-                            <Droplets size={16} className="text-blue-500 mt-0.5" />
-                            <div className="text-sm font-mono text-slate-400 break-all">{p.pourSteps}</div>
-                        </div>
-                    </div>
-                ))}
+                    );
+                })}
                 {presets.length === 0 && !isAdding && (
-                    <div className="col-span-full py-20 bg-slate-800/20 rounded-3xl border-2 border-dashed border-slate-800 flex flex-col items-center justify-center text-slate-600">
-                        <Info size={40} className="mb-4 opacity-50" />
-                        <p>No presets saved yet. Create your first brewing recipe!</p>
+                    <div className="col-span-full py-24 bg-slate-800/20 rounded-[2rem] border-2 border-dashed border-slate-800 flex flex-col items-center justify-center text-slate-600">
+                        <Settings size={40} className="mb-4 opacity-30" />
+                        <p>No routines saved yet. Define your first extraction profile.</p>
                     </div>
                 )}
             </div>
