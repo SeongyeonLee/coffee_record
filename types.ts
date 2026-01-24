@@ -14,6 +14,11 @@ export interface Bean {
   flavorNotes: string[];
 }
 
+export interface PourStep {
+  time: string; // e.g. "0:45"
+  amount: number; // e.g. 50
+}
+
 export interface Brew {
   id: string;
   date: string;
@@ -24,15 +29,10 @@ export interface Brew {
   dripper: string;
   filterType: string;
   waterTemp: number;
-  pourSteps: string; // Stored as JSON string or formatted string
+  pourSteps: string; // JSON string of PourStep[]
   totalTime: string;
   tasteReview: string;
   calculatedCost: number;
-}
-
-export interface PourStep {
-  time: string; // e.g. "0:45"
-  amount: number; // e.g. 50
 }
 
 export interface Preset {
@@ -42,7 +42,7 @@ export interface Preset {
   clicks: number;
   dripper: string;
   temp: number;
-  pourSteps: string;
+  pourSteps: string; // JSON string of PourStep[]
 }
 
 export interface CafeLog {
