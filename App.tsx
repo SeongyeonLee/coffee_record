@@ -104,11 +104,15 @@ function App() {
         return <BrewHistory history={history} beans={beans} onRefresh={() => { fetchData(); }} />;
       case AppView.PRESET_MANAGER:
         return <PresetManager presets={presets} onRefresh={() => { fetchData(); }} />;
-      case AppView.BREW_DETAIL:
+      case AppView.BREW_DETAIL: {
         const brew = selectedData as Brew;
         if (!brew) return null;
         let steps: PourStep[] = [];
-        try { steps = JSON.parse(brew.pourSteps); } catch(e) {}
+        try { 
+          steps = typeof brew.pourSteps === 'string' ? JSON.parse(brew.pourSteps) : brew.pourSteps; 
+        } catch(e) {
+          console.error("Failed to parse steps", e);
+        }
         return (
           <div className="space-y-8 animate-fade-in max-w-3xl mx-auto">
              <div className="flex items-center justify-between">
@@ -155,7 +159,7 @@ function App() {
                       <Droplets size={14} className="text-blue-500" /> Pour Sequence
                    </h4>
                    <div className="grid grid-cols-1 gap-2">
-                      {steps.map((step, i) => (
+                      {Array.isArray(steps) && steps.map((step, i) => (
                         <div key={i} className="flex justify-between items-center bg-slate-900/30 px-6 py-3 rounded-xl border border-slate-800/50">
                            <div className="flex items-center gap-3 text-slate-400">
                               <Clock size={14} className="text-slate-600" />
@@ -176,6 +180,7 @@ function App() {
              </div>
           </div>
         );
+      }
       case AppView.DASHBOARD:
       default:
         return <Dashboard beans={beans} history={history} onSelectBean={handleSelectBean} onNavigate={handleNavigate} />;
