@@ -14,18 +14,18 @@ const fetchData = async <T>(action: string, params: Record<string, string> = {})
   try {
     response = await fetch(`${API_URL}?${query}`);
   } catch (e) {
-    throw new Error('Network error: Check your internet connection and API URL.');
+    throw new Error('Network error: Connection refused. Check your internet or API URL.');
   }
   
   if (!response.ok) {
-    throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+    throw new Error(`Server returned ${response.status}: Ensure your Google Script is deployed for "Anyone".`);
   }
 
   const contentType = response.headers.get('content-type');
   if (!contentType || !contentType.includes('application/json')) {
     const text = await response.text();
     console.error('Expected JSON but got:', text.substring(0, 200));
-    throw new Error('API returned an invalid response (likely an error page). Ensure your script is deployed for "Anyone".');
+    throw new Error('API Error: Script returned HTML instead of JSON. Ensure "Anyone" has access in Deployment settings.');
   }
 
   const json: ApiResponse<T> = await response.json();
@@ -48,16 +48,16 @@ const postData = async <T>(action: string, payload: any): Promise<T> => {
       credentials: 'omit',
     });
   } catch (e) {
-    throw new Error('Network error during save: Check your API URL.');
+    throw new Error('Network error during save: Check your connection.');
   }
 
   if (!response.ok) {
-     throw new Error(`HTTP Error: ${response.status}`);
+     throw new Error(`HTTP Error ${response.status}: Ensure script is published correctly.`);
   }
 
   const contentType = response.headers.get('content-type');
   if (!contentType || !contentType.includes('application/json')) {
-    throw new Error('Save failed: API returned an invalid response.');
+    throw new Error('Save failed: API returned an invalid response (Check Apps Script permissions).');
   }
 
   let json: ApiResponse<T>;
