@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { CafeLog } from '../../types';
+import { CafeLog, CafeLogFormData } from '../../types';
 import { api } from '../../services/api';
-import { Coffee, DollarSign, MapPin, Save, X } from 'lucide-react';
+import { Coffee, MapPin, Save, X } from 'lucide-react';
 import { COMMON_FLAVORS, FLAVOR_COLORS } from '../../constants';
 
 interface CafeLogFormProps {
@@ -11,13 +11,14 @@ interface CafeLogFormProps {
 
 const CafeLogForm: React.FC<CafeLogFormProps> = ({ onSuccess, onCancel }) => {
     const [loading, setLoading] = useState(false);
-    const [formData, setFormData] = useState<CafeLog>({
+    
+    const [formData, setFormData] = useState<CafeLogFormData>({
         date: new Date().toISOString().split('T')[0],
         cafeName: '',
         beanName: '',
         price: 0,
         review: '',
-        flavorNotes: []
+        flavorNotes: [] as string[]
     });
 
     const toggleFlavor = (flavor: string) => {
@@ -38,6 +39,7 @@ const CafeLogForm: React.FC<CafeLogFormProps> = ({ onSuccess, onCancel }) => {
             await api.addCafeLog(formData);
             onSuccess();
         } catch (error) {
+            console.error(error);
             alert('Error saving log');
         } finally {
             setLoading(false);
@@ -48,13 +50,13 @@ const CafeLogForm: React.FC<CafeLogFormProps> = ({ onSuccess, onCancel }) => {
         <div className="max-w-xl mx-auto mt-6">
             <div className="bg-slate-800/50 p-6 rounded-2xl border border-slate-700 shadow-xl relative">
                 {onCancel && (
-                    <button onClick={onCancel} className="absolute right-4 top-4 text-slate-500 hover:text-white">
+                    <button onClick={onCancel} className="absolute right-4 top-4 text-slate-500 hover:text-white transition-colors">
                         <X size={20} />
                     </button>
                 )}
                 
                 <h2 className="text-xl font-light text-slate-100 mb-6 flex items-center gap-2">
-                    <MapPin className="text-purple-400" /> 
+                    <MapPin className="text-purple-400" size={20} /> 
                     New Cafe Visit
                 </h2>
                 
@@ -63,7 +65,7 @@ const CafeLogForm: React.FC<CafeLogFormProps> = ({ onSuccess, onCancel }) => {
                         <label className="block text-xs font-medium text-slate-400 mb-1">Cafe Name</label>
                         <input 
                             required 
-                            className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-slate-200 placeholder-slate-600" 
+                            className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-slate-200 placeholder-slate-600 focus:border-purple-500/50 outline-none" 
                             value={formData.cafeName}
                             onChange={e => setFormData({...formData, cafeName: e.target.value})}
                             placeholder="e.g. Blue Bottle"
@@ -75,7 +77,7 @@ const CafeLogForm: React.FC<CafeLogFormProps> = ({ onSuccess, onCancel }) => {
                         <div className="relative">
                             <input 
                                 required 
-                                className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 pl-10 text-slate-200 placeholder-slate-600" 
+                                className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 pl-10 text-slate-200 placeholder-slate-600 focus:border-purple-500/50 outline-none" 
                                 value={formData.beanName}
                                 onChange={e => setFormData({...formData, beanName: e.target.value})}
                                 placeholder="e.g. Latte or Kenya AA"
@@ -91,7 +93,7 @@ const CafeLogForm: React.FC<CafeLogFormProps> = ({ onSuccess, onCancel }) => {
                                 <input 
                                     type="number" 
                                     required 
-                                    className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 pl-10 text-slate-200" 
+                                    className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 pl-10 text-slate-200 focus:border-purple-500/50 outline-none" 
                                     value={formData.price}
                                     onChange={e => setFormData({...formData, price: Number(e.target.value)})}
                                 />
@@ -103,7 +105,7 @@ const CafeLogForm: React.FC<CafeLogFormProps> = ({ onSuccess, onCancel }) => {
                             <input 
                                 type="date" 
                                 required 
-                                className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-slate-200" 
+                                className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-slate-200 focus:border-purple-500/50 outline-none" 
                                 value={formData.date}
                                 onChange={e => setFormData({...formData, date: e.target.value})}
                             />
@@ -121,10 +123,10 @@ const CafeLogForm: React.FC<CafeLogFormProps> = ({ onSuccess, onCancel }) => {
                                         key={flavor}
                                         type="button"
                                         onClick={() => toggleFlavor(flavor)}
-                                        className={`px-2 py-1 rounded-full text-xs font-medium transition-all ${
+                                        className={`px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all ${
                                             isSelected 
                                             ? `bg-gradient-to-r ${colorClass} text-white shadow-md ring-1 ring-white/20` 
-                                            : 'bg-slate-900 text-slate-400 border border-slate-700 hover:bg-slate-800'
+                                            : 'bg-slate-900 text-slate-500 border border-slate-800 hover:bg-slate-800 hover:text-slate-300'
                                         }`}
                                     >
                                         {flavor}
@@ -137,19 +139,19 @@ const CafeLogForm: React.FC<CafeLogFormProps> = ({ onSuccess, onCancel }) => {
                     <div>
                         <label className="block text-xs font-medium text-slate-400 mb-1">Review</label>
                         <textarea 
-                            className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-slate-200 h-20 placeholder-slate-600" 
+                            className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-slate-200 h-24 placeholder-slate-600 focus:border-purple-500/50 outline-none resize-none" 
                             value={formData.review}
                             onChange={e => setFormData({...formData, review: e.target.value})}
-                            placeholder="How was it?"
+                            placeholder="How was the experience?"
                         />
                     </div>
 
                     <button 
                         type="submit" 
                         disabled={loading}
-                        className="w-full bg-purple-600 hover:bg-purple-500 text-white py-3 rounded-lg font-medium transition-colors flex justify-center items-center gap-2"
+                        className="w-full bg-purple-600 hover:bg-purple-500 text-white py-4 rounded-xl font-bold transition-all flex justify-center items-center gap-2 shadow-lg shadow-purple-900/20 disabled:opacity-50"
                     >
-                         {loading ? 'Saving...' : <><Save size={18}/> Save Log</>}
+                         {loading ? 'Saving...' : <><Save size={18}/> Save Journal Entry</>}
                     </button>
                 </form>
             </div>
