@@ -15,7 +15,7 @@ export interface Bean {
 }
 
 export interface Brew {
-  id?: string;
+  id: string;
   date: string;
   beanId: string;
   recipeName: string;
@@ -24,13 +24,19 @@ export interface Brew {
   dripper: string;
   filterType: string;
   waterTemp: number;
-  pourSteps: string;
+  pourSteps: string; // Stored as JSON string or formatted string
   totalTime: string;
   tasteReview: string;
   calculatedCost: number;
 }
 
+export interface PourStep {
+  time: string; // e.g. "0:45"
+  amount: number; // e.g. 50
+}
+
 export interface Preset {
+  id: string;
   recipeName: string;
   grinder: string;
   clicks: number;
@@ -40,7 +46,7 @@ export interface Preset {
 }
 
 export interface CafeLog {
-  id?: string;
+  id: string;
   date: string;
   cafeName: string;
   beanName: string;
