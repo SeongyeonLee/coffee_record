@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, JSX } from 'react';
 import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
 import AddBeanForm from './components/forms/AddBeanForm';
@@ -29,7 +29,7 @@ function App() {
     fetchData();
   }, []);
 
-  const fetchData = async () => {
+  const fetchData = async (): Promise<void> => {
     setIsLoading(true);
     setError(null);
     try {
@@ -64,7 +64,7 @@ function App() {
     }
   };
 
-  const renderContent = () => {
+  const renderContent = (): JSX.Element | null => {
     if (isLoading) {
       return (
         <div className="flex flex-col items-center justify-center min-h-[60vh] animate-pulse">
@@ -83,7 +83,7 @@ function App() {
           <WifiOff size={48} className="text-red-400 mb-6" />
           <h1 className="text-2xl font-light text-slate-100 mb-4">Connection Failed</h1>
           <p className="text-slate-500 mb-8 max-w-sm">{error}</p>
-          <button onClick={fetchData} className="flex items-center gap-2 bg-white text-slate-900 px-8 py-3 rounded-xl font-bold hover:bg-slate-200 transition-all">
+          <button onClick={() => { fetchData(); }} className="flex items-center gap-2 bg-white text-slate-900 px-8 py-3 rounded-xl font-bold hover:bg-slate-200 transition-all">
             <RefreshCw size={18} /> Retry
           </button>
         </div>
@@ -97,15 +97,16 @@ function App() {
         if (!selectedBean) return <div className="text-center mt-20 text-slate-500">Select a bean to start.</div>;
         return <LogBrewForm selectedBean={selectedBean} onSuccess={() => { fetchData(); setActiveView(AppView.DASHBOARD); }} />;
       case AppView.CAFE_LOG:
-        return <CafeLogBook logs={cafeLogs} onRefresh={fetchData} />;
+        return <CafeLogBook logs={cafeLogs} onRefresh={() => { fetchData(); }} />;
       case AppView.BEAN_ARCHIVE:
-        return <BeanArchive beans={beans} onRefresh={fetchData} onBrew={handleSelectBean} onNavigate={handleNavigate} />;
+        return <BeanArchive beans={beans} onRefresh={() => { fetchData(); }} onBrew={handleSelectBean} onNavigate={handleNavigate} />;
       case AppView.BREW_HISTORY:
-        return <BrewHistory history={history} beans={beans} onRefresh={fetchData} />;
+        return <BrewHistory history={history} beans={beans} onRefresh={() => { fetchData(); }} />;
       case AppView.PRESET_MANAGER:
-        return <PresetManager presets={presets} onRefresh={fetchData} />;
+        return <PresetManager presets={presets} onRefresh={() => { fetchData(); }} />;
       case AppView.BREW_DETAIL:
         const brew = selectedData as Brew;
+        if (!brew) return null;
         let steps: PourStep[] = [];
         try { steps = JSON.parse(brew.pourSteps); } catch(e) {}
         return (
@@ -125,7 +126,7 @@ function App() {
                     <p className="text-slate-400 text-lg">{beans.find(b => b.id === brew.beanId)?.roaster || 'Unknown Bean'}</p>
                   </div>
                   <div className="text-right">
-                    <div className="text-2xl font-mono text-white">₩{brew.calculatedCost.toLocaleString()}</div>
+                    <div className="text-2xl font-mono text-white">₩{(brew.calculatedCost || 0).toLocaleString()}</div>
                     <div className="text-xs text-slate-500 uppercase tracking-widest mt-1">Cost per Cup</div>
                   </div>
                 </div>
