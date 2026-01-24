@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Bean } from '../../types';
-import { COMMON_FLAVORS, COUNTRY_FLAGS, FLAVOR_COLORS } from '../../constants';
-import { Save, X, Sparkles, Loader2 } from 'lucide-react';
+import { FLAVOR_HIERARCHY, COUNTRY_FLAGS, FLAVOR_COLORS } from '../../constants';
+import { Save, X, Sparkles, Loader2, ChevronRight, ChevronDown } from 'lucide-react';
 import { api } from '../../services/api';
 import { getCoffeeDetails } from '../../services/gemini';
 
@@ -13,6 +13,7 @@ interface AddBeanFormProps {
 const AddBeanForm: React.FC<AddBeanFormProps> = ({ onSuccess, onCancel }) => {
   const [loading, setLoading] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
+  const [activeCategory, setActiveCategory] = useState<string | null>(null);
   
   const [formData, setFormData] = useState<Partial<Bean>>({
     country: '',
@@ -31,7 +32,6 @@ const AddBeanForm: React.FC<AddBeanFormProps> = ({ onSuccess, onCancel }) => {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
-    // Ensure numbers are stored as numbers, not strings
     const val = type === 'number' ? Number(value) : value;
     setFormData(prev => ({ ...prev, [name]: val }));
   };
@@ -42,7 +42,7 @@ const AddBeanForm: React.FC<AddBeanFormProps> = ({ onSuccess, onCancel }) => {
       if (current.includes(flavor)) {
         return { ...prev, flavorNotes: current.filter(f => f !== flavor) };
       }
-      if (current.length >= 3) return prev; // Max 3
+      if (current.length >= 6) return prev; // Expanded to 6
       return { ...prev, flavorNotes: [...current, flavor] };
     });
   };
@@ -55,9 +55,7 @@ const AddBeanForm: React.FC<AddBeanFormProps> = ({ onSuccess, onCancel }) => {
     setAiLoading(true);
     try {
         const beanQuery = formData.farm || formData.variety || "Coffee";
-        
         const info = await getCoffeeDetails(formData.roaster, beanQuery);
-        
         if (info) {
             setFormData(prev => ({
                 ...prev,
@@ -67,12 +65,12 @@ const AddBeanForm: React.FC<AddBeanFormProps> = ({ onSuccess, onCancel }) => {
                 variety: info.variety || prev.variety,
                 process: info.process || prev.process,
                 altitude: info.altitude ? String(info.altitude) : prev.altitude,
-                flavorNotes: info.flavorNotes && info.flavorNotes.length > 0 ? info.flavorNotes.slice(0, 3) : prev.flavorNotes
+                flavorNotes: info.flavorNotes && info.flavorNotes.length > 0 ? info.flavorNotes.slice(0, 6) : prev.flavorNotes
             }));
         }
     } catch (e) {
         console.error(e);
-        alert("Could not auto-fill details. Please try manually.");
+        alert("Could not auto-fill details.");
     } finally {
         setAiLoading(false);
     }
@@ -85,158 +83,154 @@ const AddBeanForm: React.FC<AddBeanFormProps> = ({ onSuccess, onCancel }) => {
       await api.addBean(formData as Omit<Bean, 'id'>);
       onSuccess();
     } catch (error) {
-      alert('Failed to add bean. Please check your network or API settings.\nError: ' + error);
+      alert('Failed to add bean.\nError: ' + error);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="max-w-2xl mx-auto">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-light text-slate-100">Add New Bean</h2>
-        <button onClick={onCancel} className="text-slate-500 hover:text-white"><X size={24}/></button>
+    <div className="max-w-3xl mx-auto pb-20">
+      <div className="flex justify-between items-center mb-10">
+        <div>
+          <h2 className="text-3xl font-light text-slate-100">Add New Bean</h2>
+          <p className="text-slate-500 mt-1">Populate your inventory with new specialty coffees.</p>
+        </div>
+        <button onClick={onCancel} className="p-3 bg-slate-800 rounded-full text-slate-500 hover:text-white transition-colors"><X size={24}/></button>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            
-          {/* Roaster Info */}
-          <div className="space-y-4">
-             <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">Roaster Name</label>
-                <input required name="roaster" value={formData.roaster} onChange={handleInputChange} className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-slate-200 focus:border-blue-500 outline-none" placeholder="e.g. Onyx Coffee Lab" />
-             </div>
-
-             <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">Bean Name / Farm</label>
-                 <div className="relative">
-                    <input name="farm" value={formData.farm} onChange={handleInputChange} className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 pr-10 text-slate-200 focus:border-blue-500 outline-none" placeholder="e.g. Geometry or Halo Beriti" />
-                </div>
-             </div>
-             
-             {/* AI Button */}
-             <button 
-                type="button"
-                onClick={handleAiAutofill}
-                disabled={aiLoading}
-                className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-900 to-purple-900 hover:from-indigo-800 hover:to-purple-800 border border-indigo-700 text-indigo-100 py-2 rounded-lg text-sm font-medium transition-all"
-             >
-                {aiLoading ? <Loader2 className="animate-spin" size={16}/> : <Sparkles size={16} />}
-                {aiLoading ? "Searching Web..." : "Auto-fill Details with AI"}
-             </button>
-
-             <div className="grid grid-cols-2 gap-4">
-                <div>
-                   <label className="block text-xs font-medium text-slate-400 mb-1">Country</label>
-                   <input required list="countries" name="country" value={formData.country} onChange={handleInputChange} className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-slate-200 focus:border-blue-500 outline-none" placeholder="Type..." />
-                   <datalist id="countries">
-                     {Object.keys(COUNTRY_FLAGS).filter(c => c !== 'Unknown').map(c => (
-                        <option key={c} value={c} />
-                     ))}
-                   </datalist>
-                </div>
-                <div>
-                   <label className="block text-xs font-medium text-slate-400 mb-1">Region</label>
-                   <input name="region" value={formData.region} onChange={handleInputChange} className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-slate-200 focus:border-blue-500 outline-none" placeholder="e.g. Yirgacheffe" />
-                </div>
+      <form onSubmit={handleSubmit} className="space-y-10">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+          <div className="space-y-6">
+             <div className="bg-slate-800/50 p-6 rounded-3xl border border-slate-800 space-y-6">
+               <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">Origin & Roaster</h3>
+               <div>
+                  <label className="block text-xs font-medium text-slate-400 mb-2">Roaster Name</label>
+                  <input required name="roaster" value={formData.roaster} onChange={handleInputChange} className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-slate-200 focus:border-blue-500 outline-none" placeholder="e.g. Fritz Coffee" />
+               </div>
+               <div>
+                  <label className="block text-xs font-medium text-slate-400 mb-2">Bean Name / Farm</label>
+                  <input name="farm" value={formData.farm} onChange={handleInputChange} className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-slate-200 focus:border-blue-500 outline-none" placeholder="e.g. Old Dog" />
+               </div>
+               <button 
+                  type="button"
+                  onClick={handleAiAutofill}
+                  disabled={aiLoading}
+                  className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-900/50 to-purple-900/50 hover:from-indigo-900 hover:to-purple-900 border border-indigo-700 text-indigo-100 py-3 rounded-xl text-sm font-medium transition-all"
+               >
+                  {aiLoading ? <Loader2 className="animate-spin" size={18}/> : <Sparkles size={18} />}
+                  {aiLoading ? "Searching Web..." : "Auto-fill with AI"}
+               </button>
+               <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-medium text-slate-400 mb-2">Country</label>
+                    <input required list="countries" name="country" value={formData.country} onChange={handleInputChange} className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-slate-200 focus:border-blue-500 outline-none" />
+                    <datalist id="countries">
+                      {Object.keys(COUNTRY_FLAGS).filter(c => c !== 'Unknown').map(c => <option key={c} value={c} />)}
+                    </datalist>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-400 mb-2">Region</label>
+                    <input name="region" value={formData.region} onChange={handleInputChange} className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-slate-200 focus:border-blue-500 outline-none" />
+                  </div>
+               </div>
              </div>
           </div>
 
-          {/* Technical Details */}
-          <div className="space-y-4">
-             <div className="grid grid-cols-2 gap-4">
-                <div>
-                    <label className="block text-xs font-medium text-slate-400 mb-1">Variety</label>
-                    <input name="variety" value={formData.variety} onChange={handleInputChange} className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-slate-200 focus:border-blue-500 outline-none" placeholder="e.g. Gesha" />
-                </div>
-                <div>
-                    <label className="block text-xs font-medium text-slate-400 mb-1">Process</label>
-                    <select name="process" value={formData.process} onChange={handleInputChange} className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-slate-200 focus:border-blue-500 outline-none">
-                        <option value="Natural">Natural</option>
-                        <option value="Washed">Washed</option>
-                        <option value="Honey">Honey</option>
-                        <option value="Anaerobic">Anaerobic</option>
-                        <option value="Experimental">Experimental</option>
+          <div className="space-y-6">
+             <div className="bg-slate-800/50 p-6 rounded-3xl border border-slate-800 space-y-6">
+               <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest">Technical Specs</h3>
+               <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-medium text-slate-400 mb-2">Variety</label>
+                    <input name="variety" value={formData.variety} onChange={handleInputChange} className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-slate-200 focus:border-blue-500 outline-none" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-400 mb-2">Process</label>
+                    <select name="process" value={formData.process} onChange={handleInputChange} className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-slate-200 focus:border-blue-500 outline-none">
+                        {['Natural', 'Washed', 'Honey', 'Anaerobic', 'Double Anaerobic', 'Carbonic Maceration'].map(p => <option key={p} value={p}>{p}</option>)}
                     </select>
-                </div>
-             </div>
-
-             <div className="grid grid-cols-2 gap-4">
+                  </div>
+               </div>
+               <div className="grid grid-cols-2 gap-4">
                  <div>
-                    <label className="block text-xs font-medium text-slate-400 mb-1">Altitude (masl)</label>
-                    <input name="altitude" value={formData.altitude} onChange={handleInputChange} className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-slate-200 focus:border-blue-500 outline-none" placeholder="e.g. 2000" />
+                    <label className="block text-xs font-medium text-slate-400 mb-2">Altitude</label>
+                    <input name="altitude" value={formData.altitude} onChange={handleInputChange} className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-slate-200 focus:border-blue-500 outline-none" placeholder="1800" />
                  </div>
                  <div>
-                    <label className="block text-xs font-medium text-slate-400 mb-1">Purchase Date</label>
-                    <input type="date" required name="purchaseDate" value={formData.purchaseDate} onChange={handleInputChange} className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-slate-200 focus:border-blue-500 outline-none" />
+                    <label className="block text-xs font-medium text-slate-400 mb-2">Purchase Date</label>
+                    <input type="date" required name="purchaseDate" value={formData.purchaseDate} onChange={handleInputChange} className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-slate-200 focus:border-blue-500 outline-none" />
                  </div>
-             </div>
-
-             <div className="grid grid-cols-2 gap-4">
+               </div>
+               <div className="grid grid-cols-2 gap-4">
                 <div>
-                    <label className="block text-xs font-medium text-slate-400 mb-1">Total Weight (g)</label>
-                    <input type="number" required name="weight" value={formData.weight} onChange={handleInputChange} className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-slate-200 focus:border-blue-500 outline-none" />
+                    <label className="block text-xs font-medium text-slate-400 mb-2">Weight (g)</label>
+                    <input type="number" required name="weight" value={formData.weight} onChange={handleInputChange} className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-slate-200 focus:border-blue-500 outline-none" />
                 </div>
                 <div>
-                    <label className="block text-xs font-medium text-slate-400 mb-1">Price (₩)</label>
-                    <input type="number" required name="price" value={formData.price} onChange={handleInputChange} className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-slate-200 focus:border-blue-500 outline-none" />
+                    <label className="block text-xs font-medium text-slate-400 mb-2">Price (₩)</label>
+                    <input type="number" required name="price" value={formData.price} onChange={handleInputChange} className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-slate-200 focus:border-blue-500 outline-none" />
                 </div>
+               </div>
              </div>
           </div>
         </div>
 
-        {/* Flavor Wheel Selection */}
-        <div className="pt-4 border-t border-slate-800">
-            <label className="block text-xs font-medium text-slate-400 mb-3">Flavor Profile (Max 3)</label>
-            <div className="flex flex-wrap gap-2">
-                {/* Custom Flavors from AI or Input */}
-                {formData.flavorNotes && formData.flavorNotes.map(flavor => {
-                    // If it's not in common flavors, render it specially
-                    if(!COMMON_FLAVORS.includes(flavor)) {
-                         return (
+        <div className="pt-10 border-t border-slate-800">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest">Flavor Profile Selection</h3>
+              <div className="flex gap-2">
+                {formData.flavorNotes?.map(note => (
+                  <span key={note} onClick={() => toggleFlavor(note)} className="bg-slate-700 text-white text-[10px] px-2 py-1 rounded-full cursor-pointer hover:bg-red-500 transition-colors">
+                    {note} ×
+                  </span>
+                ))}
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {Object.keys(FLAVOR_HIERARCHY).map(category => {
+                const isActive = activeCategory === category;
+                return (
+                  <div key={category} className="space-y-2">
+                    <button 
+                      type="button"
+                      onClick={() => setActiveCategory(isActive ? null : category)}
+                      className={`w-full flex items-center justify-between p-4 rounded-2xl border transition-all ${isActive ? 'bg-slate-700 border-slate-500 text-white' : 'bg-slate-800/50 border-slate-800 text-slate-400 hover:border-slate-600'}`}
+                    >
+                      <span className="text-sm font-medium">{category}</span>
+                      {isActive ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                    </button>
+                    {isActive && (
+                      <div className="grid grid-cols-1 gap-1.5 p-2 bg-slate-900/50 rounded-2xl border border-slate-800 animate-scale-in">
+                        {FLAVOR_HIERARCHY[category].map(note => {
+                          const isSelected = formData.flavorNotes?.includes(note);
+                          return (
                             <button
-                                key={flavor}
-                                type="button"
-                                onClick={() => toggleFlavor(flavor)}
-                                className="px-3 py-1 rounded-full text-sm font-medium bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-md ring-1 ring-white/20"
+                              key={note}
+                              type="button"
+                              onClick={() => toggleFlavor(note)}
+                              className={`text-left p-2 rounded-xl text-xs transition-colors ${isSelected ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30' : 'text-slate-500 hover:bg-slate-800 hover:text-slate-300'}`}
                             >
-                                {flavor} <span className="opacity-70 ml-1">×</span>
+                              {note}
                             </button>
-                         )
-                    }
-                    return null;
-                })}
-
-                {/* Common Flavors */}
-                {COMMON_FLAVORS.map(flavor => {
-                    const isSelected = formData.flavorNotes?.includes(flavor);
-                    const colorClass = FLAVOR_COLORS[flavor] || 'from-gray-600 to-gray-700';
-                    return (
-                        <button
-                            key={flavor}
-                            type="button"
-                            onClick={() => toggleFlavor(flavor)}
-                            className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${
-                                isSelected 
-                                ? `bg-gradient-to-r ${colorClass} text-white shadow-md ring-1 ring-white/20` 
-                                : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
-                            }`}
-                        >
-                            {flavor}
-                        </button>
-                    )
-                })}
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
         </div>
 
-        <div className="pt-6 flex justify-end">
+        <div className="pt-10 flex justify-end">
              <button 
                 type="submit" 
                 disabled={loading}
-                className="flex items-center gap-2 bg-slate-100 hover:bg-white text-slate-900 px-6 py-2.5 rounded-lg font-medium transition-colors disabled:opacity-50"
+                className="bg-white hover:bg-slate-200 text-slate-900 px-10 py-4 rounded-2xl font-bold transition-all shadow-xl disabled:opacity-50"
              >
-                {loading ? 'Saving...' : <><Save size={18}/> Save to Inventory</>}
+                {loading ? 'Processing...' : 'Complete Registration'}
              </button>
         </div>
       </form>
