@@ -1,133 +1,198 @@
 import React, { useState } from 'react';
-import { Brew, Bean, PourStep } from '../types';
-import { Calendar, Filter, Clock, Droplets, Info, Trash2, Loader2 } from 'lucide-react';
+import { Preset, PourStep } from '../types';
+import { Settings, Plus, Save, Trash2, Droplets, Clock, Loader2 } from 'lucide-react';
 import { api } from '../services/api';
 
-interface BrewHistoryProps {
-    history: Brew[];
-    beans: Bean[];
-    onRefresh: () => void;
+interface PresetManagerProps {
+    presets: Preset[];
+    onRefresh: () => void | Promise<void>;
 }
 
-const BrewHistory: React.FC<BrewHistoryProps> = ({ history, beans, onRefresh }) => {
-    const [filter, setFilter] = useState('');
+const PresetManager: React.FC<PresetManagerProps> = ({ presets, onRefresh }) => {
+    const [isAdding, setIsAdding] = useState(false);
+    const [loading, setLoading] = useState(false);
     const [deletingId, setDeletingId] = useState<string | null>(null);
+    const [pourSteps, setPourSteps] = useState<PourStep[]>([{ time: '0:00', amount: 0 }]);
 
-    const getBeanInfo = (id: string) => beans.find(b => b.id === id);
-
-    const filtered = history.filter(h => {
-        const bean = getBeanInfo(h.beanId);
-        return h.recipeName.toLowerCase().includes(filter.toLowerCase()) || 
-               bean?.roaster.toLowerCase().includes(filter.toLowerCase());
+    const [formData, setFormData] = useState<Omit<Preset, 'id' | 'pourSteps'>>({
+        recipeName: '',
+        grinder: '',
+        clicks: 25,
+        dripper: '',
+        temp: 93,
     });
 
-    const handleDelete = async (id: string) => {
-        if (!confirm("Are you sure you want to delete this brew record?")) return;
-        setDeletingId(id);
+    const addStep = () => setPourSteps([...pourSteps, { time: '', amount: 0 }]);
+    const removeStep = (idx: number) => setPourSteps(pourSteps.filter((_, i) => i !== idx));
+    const updateStep = (idx: number, field: keyof PourStep, val: string | number) => {
+      const newSteps = [...pourSteps];
+      newSteps[idx] = { ...newSteps[idx], [field]: val };
+      setPourSteps(newSteps);
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setLoading(true);
         try {
-            await api.deleteBrew(id);
+            await api.addPreset({ ...formData, pourSteps: JSON.stringify(pourSteps) });
             onRefresh();
+            setIsAdding(false);
+            setPourSteps([{ time: '0:00', amount: 0 }]);
+            setFormData({ recipeName: '', grinder: '', clicks: 25, dripper: '', temp: 93 });
         } catch (e) {
-            alert("Failed to delete record");
+            console.error(e);
+            alert("Error saving preset");
         } finally {
-            setDeletingId(null);
+            setLoading(false);
         }
     };
 
-    const parseSteps = (stepsStr: string): PourStep[] => {
+    const handleDelete = async (id: string) => {
+      if (!confirm("Delete this recipe preset?")) return;
+      setDeletingId(id);
       try {
-        const parsed = JSON.parse(stepsStr);
-        return Array.isArray(parsed) ? parsed : [];
+        await api.deletePreset(id);
+        onRefresh();
       } catch (e) {
-        return [];
+        console.error(e);
+        alert("Failed to delete");
+      } finally {
+        setDeletingId(null);
       }
     };
 
     return (
         <div className="space-y-8 animate-fade-in pb-20">
-            <div className="flex justify-between items-end">
+            <div className="flex justify-between items-center">
                 <div>
-                    <h1 className="text-3xl font-light text-slate-100">Brewing History</h1>
-                    <p className="text-slate-500 mt-1">Every cup you've brewed, remembered.</p>
+                    <h1 className="text-3xl font-light text-slate-100">Recipe Presets</h1>
+                    <p className="text-slate-500 mt-1">Manage your professional brewing routines.</p>
                 </div>
-                <div className="relative w-64">
-                    <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
-                    <input 
-                        type="text" 
-                        placeholder="Filter logs..."
-                        value={filter}
-                        onChange={e => setFilter(e.target.value)}
-                        className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 pl-9 text-sm text-slate-100 outline-none focus:border-emerald-500/50"
-                    />
-                </div>
+                <button 
+                    onClick={() => setIsAdding(!isAdding)}
+                    className="flex items-center gap-2 bg-slate-100 hover:bg-white text-slate-900 px-6 py-3 rounded-2xl font-bold transition-all shadow-lg"
+                >
+                    {isAdding ? 'Cancel' : <><Plus size={18} /> New Preset</>}
+                </button>
             </div>
 
-            <div className="space-y-4">
-                {filtered.map((brew, idx) => {
-                    const bean = getBeanInfo(brew.beanId);
-                    const steps = parseSteps(brew.pourSteps);
+            {isAdding && (
+                <div className="bg-slate-800 border border-slate-700 rounded-[2rem] p-8 shadow-2xl animate-scale-in">
+                    <h2 className="text-2xl text-slate-100 mb-8 flex items-center gap-2">
+                        <Settings size={24} className="text-blue-400" />
+                        Create New Recipe Routine
+                    </h2>
+                    <form onSubmit={handleSubmit} className="space-y-8">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                            <div className="space-y-6">
+                                <div>
+                                    <label className="block text-[10px] font-bold text-slate-500 uppercase mb-2">Routine Name</label>
+                                    <input required value={formData.recipeName} onChange={e => setFormData({...formData, recipeName: e.target.value})} className="w-full bg-slate-900 border border-slate-700 rounded-xl p-4 text-slate-100 focus:border-blue-500 outline-none" placeholder="e.g. V60 4:6 Method" />
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-[10px] font-bold text-slate-500 uppercase mb-2">Grinder</label>
+                                        <input required value={formData.grinder} onChange={e => setFormData({...formData, grinder: e.target.value})} className="w-full bg-slate-900 border border-slate-700 rounded-xl p-4 text-slate-100 focus:border-blue-500 outline-none" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-bold text-slate-500 uppercase mb-2">Setting</label>
+                                        <input type="number" value={formData.clicks} onChange={e => setFormData({...formData, clicks: Number(e.target.value)})} className="w-full bg-slate-900 border border-slate-700 rounded-xl p-4 text-slate-100 focus:border-blue-500 outline-none" />
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-[10px] font-bold text-slate-500 uppercase mb-2">Dripper</label>
+                                        <input required value={formData.dripper} onChange={e => setFormData({...formData, dripper: e.target.value})} className="w-full bg-slate-900 border border-slate-700 rounded-xl p-4 text-slate-100 focus:border-blue-500 outline-none" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-bold text-slate-500 uppercase mb-2">Temp (°C)</label>
+                                        <input type="number" value={formData.temp} onChange={e => setFormData({...formData, temp: Number(e.target.value)})} className="w-full bg-slate-900 border border-slate-700 rounded-xl p-4 text-slate-100 focus:border-blue-500 outline-none" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="space-y-6">
+                                <label className="block text-[10px] font-bold text-slate-500 uppercase mb-2">Pouring Steps</label>
+                                <div className="space-y-3">
+                                  {pourSteps.map((step, idx) => (
+                                    <div key={idx} className="flex gap-3 items-center">
+                                      <input value={step.time} onChange={e => updateStep(idx, 'time', e.target.value)} placeholder="0:00" className="flex-1 bg-slate-900 border border-slate-700 rounded-xl p-3 text-xs text-slate-100 font-mono" />
+                                      <input type="number" value={step.amount} onChange={e => updateStep(idx, 'amount', Number(e.target.value))} placeholder="Amount (g)" className="flex-1 bg-slate-900 border border-slate-700 rounded-xl p-3 text-xs text-slate-100 font-mono" />
+                                      <button type="button" onClick={() => removeStep(idx)} className="text-slate-600 hover:text-red-400 p-2"><Trash2 size={16}/></button>
+                                    </div>
+                                  ))}
+                                  <button type="button" onClick={addStep} className="w-full py-3 border border-dashed border-slate-700 rounded-xl text-slate-500 text-xs hover:border-slate-500 transition-all">+ Add Step</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="flex justify-end pt-4">
+                            <button type="submit" disabled={loading} className="bg-blue-600 hover:bg-blue-500 text-white px-10 py-4 rounded-2xl font-bold transition-all flex items-center gap-3 shadow-lg shadow-blue-900/20">
+                                {loading ? <Loader2 className="animate-spin" size={20}/> : <><Save size={20} /> Save Routine</>}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {presets.map((p) => {
+                    let parsedPour = [];
+                    try { parsedPour = JSON.parse(p.pourSteps); } catch(e) {}
                     return (
-                        <div key={brew.id || idx} className="group bg-slate-800 border border-slate-700 rounded-3xl p-6 hover:border-emerald-500/30 transition-all flex flex-col md:flex-row gap-6 relative">
-                            <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div key={p.id} className="bg-slate-800 p-8 rounded-[2rem] border border-slate-700 hover:border-blue-500/30 transition-all group relative overflow-hidden">
+                            <div className="absolute top-0 right-0 p-8 opacity-[0.02] pointer-events-none group-hover:scale-110 transition-transform">
+                              <Settings size={120} />
+                            </div>
+
+                            <div className="flex justify-between items-start mb-6">
+                                <h3 className="text-2xl font-light text-slate-100">{p.recipeName}</h3>
                                 <button 
-                                  onClick={() => handleDelete(brew.id)}
-                                  disabled={deletingId === brew.id}
-                                  className="p-2 text-slate-500 hover:text-red-400 hover:bg-red-400/10 rounded-full transition-all"
+                                  onClick={() => handleDelete(p.id)}
+                                  disabled={deletingId === p.id}
+                                  className="p-2 text-slate-600 hover:text-red-400 hover:bg-red-400/10 rounded-full transition-all"
                                 >
-                                  {deletingId === brew.id ? <Loader2 className="animate-spin" size={16}/> : <Trash2 size={16} />}
+                                  {deletingId === p.id ? <Loader2 className="animate-spin" size={16}/> : <Trash2 size={18} />}
                                 </button>
                             </div>
-
-                            <div className="md:w-1/4 border-r border-slate-700/50 pr-6">
-                                <div className="flex items-center gap-2 text-[10px] text-slate-500 uppercase tracking-widest mb-1">
-                                    <Calendar size={12} /> {brew.date}
-                                </div>
-                                <h3 className="text-xl font-medium text-emerald-400 truncate mb-2">{brew.recipeName}</h3>
-                                <div className="text-sm text-slate-300 font-medium">{bean?.roaster || 'Unknown Bean'}</div>
-                                <div className="text-xs text-slate-500">{bean?.variety} ({bean?.country})</div>
-                            </div>
                             
-                            <div className="flex-1 grid grid-cols-2 md:grid-cols-4 gap-4 py-2">
-                                <div className="flex flex-col">
-                                    <span className="text-[10px] text-slate-500 uppercase mb-1">Dripper</span>
-                                    <span className="text-sm text-slate-200">{brew.dripper} ({brew.filterType})</span>
+                            <div className="grid grid-cols-3 gap-3 mb-8">
+                                <div className="bg-slate-900/50 p-4 rounded-2xl border border-slate-800 text-center">
+                                    <div className="text-[10px] text-slate-500 uppercase tracking-widest mb-1">Grinder</div>
+                                    <div className="text-sm font-medium text-slate-300 truncate">{p.grinder}</div>
                                 </div>
-                                <div className="flex flex-col">
-                                    <span className="text-[10px] text-slate-500 uppercase mb-1">Grind</span>
-                                    <span className="text-sm text-slate-200">{brew.grinder} • {brew.clicks}</span>
+                                <div className="bg-slate-900/50 p-4 rounded-2xl border border-slate-800 text-center">
+                                    <div className="text-[10px] text-slate-500 uppercase tracking-widest mb-1">Setting</div>
+                                    <div className="text-sm font-medium text-slate-300">{p.clicks}</div>
                                 </div>
-                                <div className="flex flex-col">
-                                    <span className="text-[10px] text-slate-500 uppercase mb-1 flex items-center gap-1">
-                                        <Clock size={10} /> Extract
-                                    </span>
-                                    <span className="text-sm text-slate-200">{brew.totalTime}</span>
-                                </div>
-                                <div className="flex flex-col">
-                                    <span className="text-[10px] text-slate-500 uppercase mb-1">Temp</span>
-                                    <span className="text-sm text-slate-200">{brew.waterTemp}°C</span>
+                                <div className="bg-slate-900/50 p-4 rounded-2xl border border-slate-800 text-center">
+                                    <div className="text-[10px] text-slate-500 uppercase tracking-widest mb-1">Temp</div>
+                                    <div className="text-sm font-medium text-slate-300">{p.temp}°C</div>
                                 </div>
                             </div>
 
-                            <div className="md:w-1/3 bg-slate-900/30 p-4 rounded-2xl border border-slate-700/50 flex flex-col justify-between">
-                                <div className="text-xs text-slate-400 italic mb-3 line-clamp-3">
-                                    "{brew.tasteReview || 'No specific notes recorded for this brew.'}"
+                            <div className="bg-slate-900/30 p-5 rounded-2xl border border-slate-700/50">
+                                <div className="text-[10px] text-slate-500 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                  <Droplets size={12} className="text-blue-500" /> Pour Sequence
                                 </div>
-                                <div className="flex justify-between items-center pt-3 border-t border-slate-800/50">
-                                    <div className="flex items-center gap-2 text-blue-400 overflow-hidden">
-                                        <Droplets size={12} className="shrink-0" />
-                                        <span className="text-[10px] font-mono truncate text-slate-500">
-                                          {steps.length > 0 ? steps.map(s => s.amount).join('-') + 'g' : 'Custom'}
-                                        </span>
+                                <div className="space-y-3">
+                                  {Array.isArray(parsedPour) ? parsedPour.map((step: PourStep, i: number) => (
+                                    <div key={i} className="flex justify-between items-center text-sm">
+                                      <div className="flex items-center gap-2 text-slate-400">
+                                        <Clock size={10} className="text-slate-600" />
+                                        <span className="font-mono">{step.time}</span>
+                                      </div>
+                                      <div className="font-mono text-slate-200">{step.amount}g</div>
                                     </div>
-                                    <div className="text-xs font-mono text-emerald-500 shrink-0">₩{brew.calculatedCost.toLocaleString()}</div>
+                                  )) : <div className="text-xs text-slate-600">{p.pourSteps}</div>}
                                 </div>
                             </div>
                         </div>
                     );
                 })}
-                {filtered.length === 0 && (
-                    <div className="py-20 text-center text-slate-600 border-2 border-dashed border-slate-800 rounded-3xl">
-                        No records match your filters.
+                {presets.length === 0 && !isAdding && (
+                    <div className="col-span-full py-24 bg-slate-800/20 rounded-[2rem] border-2 border-dashed border-slate-800 flex flex-col items-center justify-center text-slate-600">
+                        <Settings size={40} className="mb-4 opacity-30" />
+                        <p>No routines saved yet. Define your first extraction profile.</p>
                     </div>
                 )}
             </div>
@@ -135,4 +200,4 @@ const BrewHistory: React.FC<BrewHistoryProps> = ({ history, beans, onRefresh }) 
     );
 };
 
-export default BrewHistory;
+export default PresetManager;
