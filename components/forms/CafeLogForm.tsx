@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { CafeLog, CafeLogFormData } from '../../types';
+import { CafeLogFormData } from '../../types';
 import { api } from '../../services/api';
 import { Coffee, MapPin, Save, X } from 'lucide-react';
 import { COMMON_FLAVORS, FLAVOR_COLORS } from '../../constants';
