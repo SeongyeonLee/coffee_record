@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { Brew, Bean } from '../types';
-import { Calendar, Filter, Clock, Droplets, Info, Trash2, Loader2 } from 'lucide-react';
+import { Brew, Bean, PourStep } from '../types';
+import { Calendar, Filter, Clock, Droplets, Trash2, Loader2 } from 'lucide-react';
 import { api } from '../services/api';
 
 interface BrewHistoryProps {
     history: Brew[];
     beans: Bean[];
-    onRefresh: () => void;
+    onRefresh: () => void | Promise<void>;
 }
 
 const BrewHistory: React.FC<BrewHistoryProps> = ({ history, beans, onRefresh }) => {
@@ -28,10 +28,20 @@ const BrewHistory: React.FC<BrewHistoryProps> = ({ history, beans, onRefresh }) 
             await api.deleteBrew(id);
             onRefresh();
         } catch (e) {
+            console.error(e);
             alert("Failed to delete record");
         } finally {
             setDeletingId(null);
         }
+    };
+
+    const parseSteps = (stepsStr: string): PourStep[] => {
+      try {
+        const parsed = JSON.parse(stepsStr);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch (e) {
+        return [];
+      }
     };
 
     return (
@@ -56,9 +66,9 @@ const BrewHistory: React.FC<BrewHistoryProps> = ({ history, beans, onRefresh }) 
             <div className="space-y-4">
                 {filtered.map((brew, idx) => {
                     const bean = getBeanInfo(brew.beanId);
+                    const steps = parseSteps(brew.pourSteps);
                     return (
                         <div key={brew.id || idx} className="group bg-slate-800 border border-slate-700 rounded-3xl p-6 hover:border-emerald-500/30 transition-all flex flex-col md:flex-row gap-6 relative">
-                            {/* Actions Overlay */}
                             <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
                                 <button 
                                   onClick={() => handleDelete(brew.id)}
@@ -74,7 +84,7 @@ const BrewHistory: React.FC<BrewHistoryProps> = ({ history, beans, onRefresh }) 
                                     <Calendar size={12} /> {brew.date}
                                 </div>
                                 <h3 className="text-xl font-medium text-emerald-400 truncate mb-2">{brew.recipeName}</h3>
-                                <div className="text-sm text-slate-300 font-medium">{bean?.roaster}</div>
+                                <div className="text-sm text-slate-300 font-medium">{bean?.roaster || 'Unknown Bean'}</div>
                                 <div className="text-xs text-slate-500">{bean?.variety} ({bean?.country})</div>
                             </div>
                             
@@ -89,7 +99,7 @@ const BrewHistory: React.FC<BrewHistoryProps> = ({ history, beans, onRefresh }) 
                                 </div>
                                 <div className="flex flex-col">
                                     <span className="text-[10px] text-slate-500 uppercase mb-1 flex items-center gap-1">
-                                        <Clock size={10} /> Time
+                                        <Clock size={10} /> Extract
                                     </span>
                                     <span className="text-sm text-slate-200">{brew.totalTime}</span>
                                 </div>
@@ -106,18 +116,19 @@ const BrewHistory: React.FC<BrewHistoryProps> = ({ history, beans, onRefresh }) 
                                 <div className="flex justify-between items-center pt-3 border-t border-slate-800/50">
                                     <div className="flex items-center gap-2 text-blue-400 overflow-hidden">
                                         <Droplets size={12} className="shrink-0" />
-                                        <span className="text-[10px] font-mono truncate text-slate-500">{brew.pourSteps}</span>
+                                        <span className="text-[10px] font-mono truncate text-slate-500">
+                                          {steps.length > 0 ? steps.map(s => s.amount).join('-') + 'g' : 'Custom'}
+                                        </span>
                                     </div>
-                                    <div className="text-xs font-mono text-emerald-500 shrink-0">₩{brew.calculatedCost.toLocaleString()}</div>
+                                    <div className="text-xs font-mono text-emerald-500 shrink-0">₩{(brew.calculatedCost || 0).toLocaleString()}</div>
                                 </div>
                             </div>
                         </div>
                     );
                 })}
                 {filtered.length === 0 && (
-                    <div className="py-20 text-center text-slate-600 bg-slate-800/20 rounded-3xl border-2 border-dashed border-slate-800">
-                        <Info size={40} className="mx-auto mb-4 opacity-50" />
-                        <p>No records match your filters.</p>
+                    <div className="py-20 text-center text-slate-600 border-2 border-dashed border-slate-800 rounded-3xl">
+                        No records match your filters.
                     </div>
                 )}
             </div>
